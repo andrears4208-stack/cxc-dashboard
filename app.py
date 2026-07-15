@@ -241,7 +241,7 @@ def render_dashboard(df):
         )
         fig.update_layout(xaxis_title="Saldo Neto (Soles)", yaxis_title="",
                           margin=dict(l=0, r=0, t=10, b=0))
-        fig.update_traces(textposition="outside")
+        fig.update_traces(textposition="auto")
         st.plotly_chart(fig, use_container_width=True)
 
     with col_right:
@@ -309,7 +309,7 @@ def render_dashboard(df):
         )
         fig.update_layout(xaxis_title="Saldo Neto (Soles)", yaxis_title="",
                           margin=dict(l=0, r=0, t=10, b=0))
-        fig.update_traces(textposition="outside")
+        fig.update_traces(textposition="auto")
         st.plotly_chart(fig, use_container_width=True)
 
     with st.expander("Desglose por Tipo de Documento", expanded=False):
