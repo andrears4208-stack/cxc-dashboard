@@ -87,13 +87,12 @@ def main():
             help="Sube el archivo Excel con los datos actualizados",
         )
 
-        if uploaded_file:
+        if uploaded_file and store["df"] is None:
             with st.spinner("Procesando datos..."):
                 store["df"] = process_excel(uploaded_file)
                 store["name"] = uploaded_file.name
                 store["loaded_at"] = datetime.now()
             st.success(f"{len(store['df'])} registros cargados")
-            st.rerun()
 
         df = store["df"]
 
