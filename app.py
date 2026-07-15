@@ -20,11 +20,6 @@ CXC_DOCS = {"FT", "BV", "ND"}
 IGNORE_DOCS = {"VR"}
 
 
-@st.cache_resource
-def get_store():
-    return {"df": None, "name": None, "loaded_at": None}
-
-
 def process_excel(file_buffer):
     df = pd.read_excel(file_buffer)
     df.columns = df.columns.str.strip()
@@ -76,7 +71,14 @@ def main():
     st.title("Dashboard de Cuentas por Cobrar")
     st.markdown("---")
 
-    store = get_store()
+    if "df" not in st.session_state:
+        st.session_state.df = None
+    if "file_key" not in st.session_state:
+        st.session_state.file_key = None
+    if "file_name" not in st.session_state:
+        st.session_state.file_name = None
+    if "loaded_at" not in st.session_state:
+        st.session_state.loaded_at = None
 
     with st.sidebar:
         st.header("Datos")
@@ -84,34 +86,37 @@ def main():
         uploaded_file = st.file_uploader(
             "Cargar archivo Excel",
             type=["xlsx"],
-            help="Sube el archivo Excel con los datos actualizados",
+            help="Sube tu archivo Excel para ver el dashboard",
         )
 
-        if uploaded_file and store["df"] is None:
-            with st.spinner("Procesando datos..."):
-                store["df"] = process_excel(uploaded_file)
-                store["name"] = uploaded_file.name
-                store["loaded_at"] = datetime.now()
-            st.success(f"{len(store['df'])} registros cargados")
+        if uploaded_file:
+            file_key = f"{uploaded_file.name}_{uploaded_file.size}"
+            if st.session_state.file_key != file_key:
+                with st.spinner("Procesando datos..."):
+                    st.session_state.df = process_excel(uploaded_file)
+                    st.session_state.file_key = file_key
+                    st.session_state.file_name = uploaded_file.name
+                    st.session_state.loaded_at = datetime.now()
+                st.success(f"{len(st.session_state.df)} registros cargados")
+                st.rerun()
 
-        df = store["df"]
+        df = st.session_state.df
 
         if df is None:
-            st.warning("No hay datos cargados. Sube un archivo Excel para comenzar.")
+            st.warning("Sube un archivo Excel para comenzar.")
             st.markdown("---")
             st.info(
                 "**Instrucciones:**  \n"
                 "1. Prepara tu archivo Excel  \n"
                 "2. Usa el boton de arriba para subirlo  \n"
-                "3. Todos los usuarios veran los mismos datos  \n"
-                "4. Para actualizar, solo sube un nuevo archivo"
+                "3. Solo tu veras tus datos"
             )
             st.stop()
 
         st.info(f"{len(df)} registros cargados")
-        if store["loaded_at"]:
-            st.caption(f"Archivo: {store['name']} | "
-                       f"{store['loaded_at'].strftime('%d/%m/%Y %H:%M')}")
+        if st.session_state.loaded_at:
+            st.caption(f"Archivo: {st.session_state.file_name} | "
+                       f"{st.session_state.loaded_at.strftime('%d/%m/%Y %H:%M')}")
 
         st.markdown("---")
         st.header("Filtros")
