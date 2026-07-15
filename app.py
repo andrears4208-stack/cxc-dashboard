@@ -130,6 +130,13 @@ def main():
             "Moneda", options=["Todas", "MN (Soles)", "ME (Dolares)"]
         )
 
+        has_tipo = "TIPO" in df.columns
+        if has_tipo:
+            all_tipos = sorted(df["TIPO"].unique())
+            selected_tipo = st.selectbox("Tipo", options=["Todas"] + all_tipos)
+        else:
+            selected_tipo = "Todas"
+
         all_vendors = sorted(df["VENDEDOR"].unique())
         selected_vendors = st.multiselect(
             "Vendedor(es)",
@@ -154,13 +161,6 @@ def main():
             max_value=max_dias,
             value=(min_dias, max_dias),
         )
-
-        has_tipo = "TIPO" in df.columns
-        if has_tipo:
-            all_tipos = sorted(df["TIPO"].unique())
-            selected_tipo = st.selectbox("Tipo", options=["Todas"] + all_tipos)
-        else:
-            selected_tipo = "Todas"
 
     currency_map = {"MN (Soles)": "MN", "ME (Dolares)": "ME"}
     filtered = df.copy()
