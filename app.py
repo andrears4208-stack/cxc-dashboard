@@ -234,7 +234,7 @@ def render_dashboard(df):
             x="SALDO_NETO_SOLES",
             y="VENDEDOR",
             orientation="h",
-            texttemplate="%{x:,.2f}",
+            text_auto=",.2f",
             color="SALDO_NETO_SOLES",
             color_continuous_scale="Blues",
             height=400,
@@ -280,7 +280,7 @@ def render_dashboard(df):
             category_orders={"RANGO_VENCIMIENTO": aging_order},
             color="SALDO_NETO_SOLES",
             color_continuous_scale="Reds",
-            texttemplate="%{x:,.2f}",
+            text_auto=",.2f",
             height=400,
         )
         fig.update_layout(xaxis_title="Rango", yaxis_title="Saldo Neto (Soles)",
@@ -302,7 +302,7 @@ def render_dashboard(df):
             x="SALDO_NETO_SOLES",
             y="NOMBRECLIENTE",
             orientation="h",
-            texttemplate="%{x:,.2f}",
+            text_auto=",.2f",
             color="SALDO_NETO_SOLES",
             color_continuous_scale="Greens",
             height=400,
@@ -322,7 +322,7 @@ def render_dashboard(df):
         fig = px.bar(
             doc_agg, x="TIPODOC", y="SALDO_NETO_SOLES",
             color="SALDO_NETO_SOLES", color_continuous_scale="Viridis",
-            texttemplate="%{x:,.2f}", height=350,
+            text_auto=",.2f", height=350,
         )
         fig.update_layout(xaxis_title="Tipo Doc", yaxis_title="Saldo Neto (Soles)",
                           margin=dict(l=0, r=0, t=10, b=0))
@@ -336,7 +336,7 @@ def render_dashboard(df):
         x="MES_EMISION",
         y="SALDO_NETO_SOLES",
         category_orders={"MES_EMISION": month_order},
-        texttemplate="%{x:,.2f}",
+        text_auto=",.2f",
         color="SALDO_NETO_SOLES",
         color_continuous_scale="Teal",
         height=400,
