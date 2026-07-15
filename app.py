@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
-import os
-import tempfile
 
 st.set_page_config(
     page_title="Dashboard CxC",
@@ -12,10 +10,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-DATA_DIR = os.path.join(tempfile.gettempdir(), "cxc_dashboard")
-os.makedirs(DATA_DIR, exist_ok=True)
-DATA_FILE = os.path.join(DATA_DIR, "cxc_data.xlsx")
-
 MONTH_NAMES = {
     1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL",
     5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGOSTO",
@@ -23,38 +17,29 @@ MONTH_NAMES = {
 }
 
 CXC_DOCS = {"FT", "BV", "ND"}
-CXP_DOCS = {"NC", "PA", "CR", "BD"}
 IGNORE_DOCS = {"VR"}
 
 
-@st.cache_data(ttl=7200)
-def load_data():
-    if not os.path.exists(DATA_FILE):
-        return None
-    df = pd.read_excel(DATA_FILE)
+@st.cache_resource
+def get_store():
+    return {"df": None, "name": None, "loaded_at": None}
+
+
+def process_excel(file_buffer):
+    df = pd.read_excel(file_buffer)
     df.columns = df.columns.str.strip()
 
     df = df[~df["TIPODOC"].isin(IGNORE_DOCS)].copy()
 
-    df["SALDO"] = df.apply(
-        lambda r: r["SALDO (S/.)"] if r["MONEDA"] == "MN" else r["SALDO (US$)"],
-        axis=1,
-    )
-    df["SALDO_SOLES"] = df.apply(
-        lambda r: r["SALDO (S/.)"]
-        if r["MONEDA"] == "MN"
-        else r["SALDO (US$)"] * r["TIPOCAMBIO"],
-        axis=1,
-    )
+    es_mn = df["MONEDA"] == "MN"
+    es_cxc = df["TIPODOC"].isin(CXC_DOCS)
 
-    df["SALDO_NETO"] = df.apply(
-        lambda r: r["SALDO"] if r["TIPODOC"] in CXC_DOCS else -r["SALDO"],
-        axis=1,
+    df["SALDO"] = df["SALDO (S/.)"].where(es_mn, df["SALDO (US$)"])
+    df["SALDO_SOLES"] = df["SALDO (S/.)"].where(
+        es_mn, df["SALDO (US$)"] * df["TIPOCAMBIO"]
     )
-    df["SALDO_NETO_SOLES"] = df.apply(
-        lambda r: r["SALDO_SOLES"] if r["TIPODOC"] in CXC_DOCS else -r["SALDO_SOLES"],
-        axis=1,
-    )
+    df["SALDO_NETO"] = df["SALDO"].where(es_cxc, -df["SALDO"])
+    df["SALDO_NETO_SOLES"] = df["SALDO_SOLES"].where(es_cxc, -df["SALDO_SOLES"])
 
     bins = [-1, 0, 30, 60, 90, float("inf")]
     labels = ["No vencido", "1-30 dias", "31-60 dias", "61-90 dias", "90+ dias"]
@@ -91,6 +76,8 @@ def main():
     st.title("Dashboard de Cuentas por Cobrar")
     st.markdown("---")
 
+    store = get_store()
+
     with st.sidebar:
         st.header("Datos")
 
@@ -101,13 +88,14 @@ def main():
         )
 
         if uploaded_file:
-            with open(DATA_FILE, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            st.cache_data.clear()
-            st.success(f"Archivo cargado: {len(pd.read_excel(uploaded_file))} registros")
+            with st.spinner("Procesando datos..."):
+                store["df"] = process_excel(uploaded_file)
+                store["name"] = uploaded_file.name
+                store["loaded_at"] = datetime.now()
+            st.success(f"{len(store['df'])} registros cargados")
             st.rerun()
 
-        df = load_data()
+        df = store["df"]
 
         if df is None:
             st.warning("No hay datos cargados. Sube un archivo Excel para comenzar.")
@@ -115,13 +103,16 @@ def main():
             st.info(
                 "**Instrucciones:**  \n"
                 "1. Prepara tu archivo Excel  \n"
-                "2. Usa el botón de arriba para subirlo  \n"
-                "3. Todos los usuarios verán los mismos datos  \n"
+                "2. Usa el boton de arriba para subirlo  \n"
+                "3. Todos los usuarios veran los mismos datos  \n"
                 "4. Para actualizar, solo sube un nuevo archivo"
             )
             st.stop()
 
         st.info(f"{len(df)} registros cargados")
+        if store["loaded_at"]:
+            st.caption(f"Archivo: {store['name']} | "
+                       f"{store['loaded_at'].strftime('%d/%m/%Y %H:%M')}")
 
         st.markdown("---")
         st.header("Filtros")
@@ -158,10 +149,6 @@ def main():
             min_value=min_dias,
             max_value=max_dias,
             value=(min_dias, max_dias),
-        )
-
-        st.caption(
-            "Sube un nuevo archivo cuando actualices los datos"
         )
 
     currency_map = {"MN (Soles)": "MN", "ME (Dolares)": "ME"}
