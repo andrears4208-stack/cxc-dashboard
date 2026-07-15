@@ -351,7 +351,9 @@ def render_dashboard(df):
 
 
 def render_rankings(df):
-    top10 = (
+    col1, col2, col3 = st.columns(3)
+
+    top_neto = (
         df.groupby("NOMBRECLIENTE")["SALDO_NETO_SOLES"]
         .sum()
         .sort_values(ascending=False)
@@ -359,12 +361,47 @@ def render_rankings(df):
         .reset_index()
     )
 
-    st.subheader("Top 10 - Quienes Mas Deben (Neto)")
-    for i, (_, row) in enumerate(top10.iterrows(), 1):
-        label = row["NOMBRECLIENTE"][:65]
-        st.markdown(
-            f"**#{i}** {label}  \n{fmt_soles(row['SALDO_NETO_SOLES'])}"
-        )
+    df_mn = df[df["MONEDA"] == "MN"]
+    top_mn = (
+        df_mn.groupby("NOMBRECLIENTE")["SALDO_NETO"]
+        .sum()
+        .sort_values(ascending=False)
+        .head(10)
+        .reset_index()
+    )
+
+    df_me = df[df["MONEDA"] == "ME"]
+    top_me = (
+        df_me.groupby("NOMBRECLIENTE")["SALDO_NETO"]
+        .sum()
+        .sort_values(ascending=False)
+        .head(10)
+        .reset_index()
+    )
+
+    with col1:
+        st.subheader("Top 10 Neto (Soles)")
+        for i, (_, row) in enumerate(top_neto.iterrows(), 1):
+            st.markdown(
+                f"**#{i}** {row['NOMBRECLIENTE'][:55]}  \n"
+                f"{fmt_soles(row['SALDO_NETO_SOLES'])}"
+            )
+
+    with col2:
+        st.subheader("Top 10 Soles (MN)")
+        for i, (_, row) in enumerate(top_mn.iterrows(), 1):
+            st.markdown(
+                f"**#{i}** {row['NOMBRECLIENTE'][:55]}  \n"
+                f"{fmt_soles(row['SALDO_NETO'])}"
+            )
+
+    with col3:
+        st.subheader("Top 10 Dolares (ME)")
+        for i, (_, row) in enumerate(top_me.iterrows(), 1):
+            st.markdown(
+                f"**#{i}** {row['NOMBRECLIENTE'][:55]}  \n"
+                f"{fmt_dolares(row['SALDO_NETO'])}"
+            )
 
     st.markdown("---")
     st.subheader("Cartera por Vendedor (Ranking)")
