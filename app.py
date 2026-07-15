@@ -155,6 +155,13 @@ def main():
             value=(min_dias, max_dias),
         )
 
+        has_tipo = "TIPO" in df.columns
+        if has_tipo:
+            all_tipos = sorted(df["TIPO"].unique())
+            selected_tipo = st.selectbox("Tipo", options=["Todas"] + all_tipos)
+        else:
+            selected_tipo = "Todas"
+
     currency_map = {"MN (Soles)": "MN", "ME (Dolares)": "ME"}
     filtered = df.copy()
 
@@ -174,11 +181,13 @@ def main():
         (filtered["DIAS_VENCIDOS"] >= dias_range[0])
         & (filtered["DIAS_VENCIDOS"] <= dias_range[1])
     ]
+    if "TIPO" in filtered.columns and selected_tipo != "Todas":
+        filtered = filtered[filtered["TIPO"] == selected_tipo]
 
     tab1, tab2, tab3 = st.tabs(["Dashboard", "Rankings", "Tabla Detallada"])
 
     with tab1:
-        render_dashboard(filtered)
+        render_dashboard(filtered, df)
 
     with tab2:
         render_rankings(filtered)
@@ -193,7 +202,7 @@ def main():
     )
 
 
-def render_dashboard(df):
+def render_dashboard(df, df_original):
     neto_mn = df[df["MONEDA"] == "MN"]["SALDO_NETO"].sum()
     neto_me = df[df["MONEDA"] == "ME"]["SALDO_NETO"].sum()
     neto_soles = df["SALDO_NETO_SOLES"].sum()
@@ -216,6 +225,36 @@ def render_dashboard(df):
         "Saldo Neto (convertido a Soles)",
         fmt_soles(neto_soles),
     )
+
+    has_tipo = "TIPO" in df_original.columns
+    if has_tipo:
+        st.markdown("---")
+        st.subheader("Resumen por Tipo")
+        resumen = {}
+        for tipo in sorted(df_original["TIPO"].unique()):
+            d = df_original[df_original["TIPO"] == tipo]
+            resumen[tipo] = {
+                "MN": d[d["MONEDA"] == "MN"]["SALDO_NETO"].sum(),
+                "ME": d[d["MONEDA"] == "ME"]["SALDO_NETO"].sum(),
+                "Clientes": (d.groupby("NOMBRECLIENTE")["SALDO_NETO_SOLES"].sum() > 0).sum(),
+                "Neto": d["SALDO_NETO_SOLES"].sum(),
+            }
+
+        row_data = []
+        labels = {"MN": "Total CxC MN", "ME": "Total CxC ME", "Clientes": "Clientes con Deuda", "Neto": "Saldo Neto"}
+        formatters = {"MN": fmt_soles, "ME": fmt_dolares, "Clientes": fmt_num, "Neto": fmt_soles}
+        for key, label in labels.items():
+            entry = {"Métrica": label}
+            for tipo in sorted(df_original["TIPO"].unique()):
+                entry[tipo] = formatters[key](resumen[tipo][key])
+            row_data.append(entry)
+        tipo_df = pd.DataFrame(row_data)
+        st.dataframe(
+            tipo_df,
+            column_config={"Métrica": "Métrica"},
+            hide_index=True,
+            use_container_width=True,
+        )
 
     st.markdown("---")
 
@@ -312,21 +351,38 @@ def render_dashboard(df):
         fig.update_traces(textposition="auto")
         st.plotly_chart(fig, use_container_width=True)
 
-    with st.expander("Desglose por Tipo de Documento", expanded=False):
-        doc_agg = (
-            df.groupby("TIPODOC")["SALDO_NETO_SOLES"]
-            .sum()
-            .sort_values(ascending=False)
-            .reset_index()
-        )
-        fig = px.bar(
-            doc_agg, x="TIPODOC", y="SALDO_NETO_SOLES",
-            color="SALDO_NETO_SOLES", color_continuous_scale="Viridis",
-            text_auto=",.2f", height=350,
-        )
-        fig.update_layout(xaxis_title="Tipo Doc", yaxis_title="Saldo Neto (Soles)",
-                          margin=dict(l=0, r=0, t=10, b=0))
-        st.plotly_chart(fig, use_container_width=True)
+    col_doc, col_tipo = st.columns(2)
+
+    with col_doc:
+        with st.expander("Desglose por Tipo de Documento", expanded=False):
+            doc_agg = (
+                df.groupby("TIPODOC")["SALDO_NETO_SOLES"]
+                .sum()
+                .sort_values(ascending=False)
+                .reset_index()
+            )
+            fig = px.bar(
+                doc_agg, x="TIPODOC", y="SALDO_NETO_SOLES",
+                color="SALDO_NETO_SOLES", color_continuous_scale="Viridis",
+                text_auto=",.2f", height=350,
+            )
+            fig.update_layout(xaxis_title="Tipo Doc", yaxis_title="Saldo Neto (Soles)",
+                              margin=dict(l=0, r=0, t=10, b=0))
+            st.plotly_chart(fig, use_container_width=True)
+
+    with col_tipo:
+        st.subheader("Distribucion por Tipo")
+        if has_tipo:
+            tipo_agg = df.groupby("TIPO")["SALDO_NETO_SOLES"].sum().reset_index()
+            fig = px.pie(
+                tipo_agg, values="SALDO_NETO_SOLES", names="TIPO",
+                hole=0.4, height=350,
+                color_discrete_sequence=px.colors.qualitative.Set2,
+            )
+            fig.update_layout(margin=dict(l=0, r=0, t=10, b=0))
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Columna TIPO no disponible en los datos")
 
     st.markdown("### Evolucion de Emision por Mes")
     monthly = df.groupby("MES_EMISION")["SALDO_NETO_SOLES"].sum().reset_index()
