@@ -92,25 +92,25 @@ modules = [
     {
         "icon": "💰",
         "title": "CxC",
-        "desc": "Cuentas por Cobrar · Clientes, facturación y cobranzas",
+        "desc": "Cuentas por Cobrar",
         "page": "pages/01_cxc.py",
     },
     {
         "icon": "📄",
         "title": "CxP",
-        "desc": "Cuentas por Pagar · Proveedores, vencimientos y pagos",
+        "desc": "Cuentas por Pagar",
         "page": "pages/02_cxp.py",
     },
     {
         "icon": "📈",
         "title": "Comercial",
-        "desc": "Gestión Comercial · Ventas, metas y comisiones",
+        "desc": "Gestión Comercial",
         "page": "pages/03_comercial.py",
     },
     {
         "icon": "🏦",
         "title": "Caja y Bancos",
-        "desc": "Tesorería · Movimientos, saldos y conciliación",
+        "desc": "Caja y Bancos",
         "page": "pages/04_caja_bancos.py",
     },
 ]
