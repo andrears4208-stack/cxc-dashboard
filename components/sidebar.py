@@ -13,19 +13,19 @@ def render(title="Dashboard Financiero"):
         st.page_link("app.py", label="Inicio", icon="🏠", use_container_width=True)
         st.page_link(
             "pages/01_cxc.py",
-            label="CxC — Cuentas por Cobrar",
+            label="Cuentas por Cobrar",
             icon="💰",
             use_container_width=True,
         )
         st.page_link(
             "pages/02_cxp.py",
-            label="CxP — Cuentas por Pagar",
+            label="Cuentas por Pagar",
             icon="📄",
             use_container_width=True,
         )
         st.page_link(
             "pages/03_comercial.py",
-            label="Comercial",
+            label="Gestión Comercial",
             icon="📈",
             use_container_width=True,
             disabled=True,
