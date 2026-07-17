@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
-from utils.formatting import fmt_soles, fmt_dolares, fmt_num, MONTH_NAMES
+from utils.formatting import fmt_soles, fmt_dolares, fmt_num, fmt_soles_miles, fmt_dolares_miles, fmt_num_miles
 from utils.data import process_cxp
 from components.sidebar import render as render_sidebar
 
@@ -44,16 +44,16 @@ def render_dashboard(df):
 
     kpi_cols = st.columns(4)
     with kpi_cols[0]:
-        st.metric("Total CxP MN", fmt_soles(total_mn))
+        st.metric("Total CxP MN (Miles)", fmt_soles_miles(total_mn))
     with kpi_cols[1]:
-        st.metric("Total CxP ME", fmt_dolares(total_me))
+        st.metric("Total CxP ME (Miles)", fmt_dolares_miles(total_me))
     with kpi_cols[2]:
         st.metric("Proveedores con Deuda", fmt_num(proveedores_deuda))
     with kpi_cols[3]:
         st.metric("Total Documentos", fmt_num(num_docs))
     st.metric(
-        "Saldo Total (convertido a Soles)",
-        fmt_soles(total_soles),
+        "Saldo Total (Miles de Soles)",
+        fmt_soles_miles(total_soles),
     )
 
     has_gasto = "GASTO" in df.columns
@@ -79,10 +79,10 @@ def render_dashboard(df):
             "Neto": "Saldo Neto",
         }
         formatters = {
-            "MN": fmt_soles,
-            "ME": fmt_dolares,
+            "MN": fmt_soles_miles,
+            "ME": fmt_dolares_miles,
             "Proveedores": fmt_num,
-            "Neto": fmt_soles,
+            "Neto": fmt_soles_miles,
         }
         for key, label in labels.items():
             entry = {"Métrica": label}
@@ -107,18 +107,19 @@ def render_dashboard(df):
             .tail(20)
             .reset_index()
         )
+        prov_agg["texto"] = prov_agg["SALDO_NETO_SOLES"].apply(fmt_num_miles)
         fig = px.bar(
             prov_agg,
             x="SALDO_NETO_SOLES",
             y="PROVEEDOR",
             orientation="h",
-            text_auto=",.2f",
+            text="texto",
             color="SALDO_NETO_SOLES",
             color_continuous_scale="Oranges",
             height=500,
         )
         fig.update_layout(
-            xaxis_title="Saldo (Soles)",
+            xaxis_title="Miles de Soles",
             yaxis_title="",
             margin=dict(l=0, r=0, t=10, b=0),
         )
@@ -161,6 +162,7 @@ def render_dashboard(df):
             .sum()
             .reset_index()
         )
+        aging_agg["texto"] = aging_agg["SALDO_NETO_SOLES"].apply(fmt_num_miles)
         fig = px.bar(
             aging_agg,
             x="RANGO_VENCIMIENTO",
@@ -168,12 +170,12 @@ def render_dashboard(df):
             category_orders={"RANGO_VENCIMIENTO": aging_order},
             color="SALDO_NETO_SOLES",
             color_continuous_scale="Reds",
-            text_auto=",.2f",
+            text="texto",
             height=400,
         )
         fig.update_layout(
             xaxis_title="Rango",
-            yaxis_title="Saldo (Soles)",
+            yaxis_title="Miles de Soles",
             margin=dict(l=0, r=0, t=10, b=0),
         )
         fig.update_traces(textposition="outside")
@@ -188,18 +190,19 @@ def render_dashboard(df):
             .tail(10)
             .reset_index()
         )
+        top10["texto"] = top10["SALDO_NETO_SOLES"].apply(fmt_num_miles)
         fig = px.bar(
             top10,
             x="SALDO_NETO_SOLES",
             y="PROVEEDOR",
             orientation="h",
-            text_auto=",.2f",
+            text="texto",
             color="SALDO_NETO_SOLES",
             color_continuous_scale="Oranges",
             height=400,
         )
         fig.update_layout(
-            xaxis_title="Saldo (Soles)",
+            xaxis_title="Miles de Soles",
             yaxis_title="",
             margin=dict(l=0, r=0, t=10, b=0),
         )
@@ -216,18 +219,19 @@ def render_dashboard(df):
                 .sort_values(ascending=False)
                 .reset_index()
             )
+            doc_agg["texto"] = doc_agg["SALDO_NETO_SOLES"].apply(fmt_num_miles)
             fig = px.bar(
                 doc_agg,
                 x="TIPDOCU",
                 y="SALDO_NETO_SOLES",
                 color="SALDO_NETO_SOLES",
                 color_continuous_scale="Viridis",
-                text_auto=",.2f",
+                text="texto",
                 height=350,
             )
             fig.update_layout(
                 xaxis_title="Tipo Doc",
-                yaxis_title="Saldo (Soles)",
+                yaxis_title="Miles de Soles",
                 margin=dict(l=0, r=0, t=10, b=0),
             )
             st.plotly_chart(fig, use_container_width=True)
@@ -251,28 +255,7 @@ def render_dashboard(df):
         else:
             st.info("Columna GASTO no disponible en los datos")
 
-    st.markdown("### Evolucion de Emision por Mes")
-    monthly = (
-        df.groupby("MES_EMISION")["SALDO_NETO_SOLES"].sum().reset_index()
-    )
-    month_order = list(MONTH_NAMES.values())
-    fig = px.bar(
-        monthly,
-        x="MES_EMISION",
-        y="SALDO_NETO_SOLES",
-        category_orders={"MES_EMISION": month_order},
-        text_auto=",.2f",
-        color="SALDO_NETO_SOLES",
-        color_continuous_scale="Teal",
-        height=400,
-    )
-    fig.update_layout(
-        xaxis_title="Mes de Emision",
-        yaxis_title="Saldo (Soles)",
-        margin=dict(l=0, r=0, t=10, b=0),
-    )
-    fig.update_traces(textposition="outside")
-    st.plotly_chart(fig, use_container_width=True)
+
 
 
 def render_rankings(df):
@@ -305,27 +288,27 @@ def render_rankings(df):
     )
 
     with col1:
-        st.subheader("Top 10 Neto (Soles)")
+        st.subheader("Top 10 Neto (Miles de Soles)")
         for i, (_, row) in enumerate(top_neto.iterrows(), 1):
             st.markdown(
                 f"**#{i}** {row['PROVEEDOR'][:55]}  \n"
-                f"{fmt_soles(row['SALDO_NETO_SOLES'])}"
+                f"{fmt_soles_miles(row['SALDO_NETO_SOLES'])}"
             )
 
     with col2:
-        st.subheader("Top 10 Soles (MN)")
+        st.subheader("Top 10 Soles MN (Miles)")
         for i, (_, row) in enumerate(top_mn.iterrows(), 1):
             st.markdown(
                 f"**#{i}** {row['PROVEEDOR'][:55]}  \n"
-                f"{fmt_soles(row['SALDO_NETO'])}"
+                f"{fmt_soles_miles(row['SALDO_NETO'])}"
             )
 
     with col3:
-        st.subheader("Top 10 Dolares (ME)")
+        st.subheader("Top 10 Dólares ME (Miles)")
         for i, (_, row) in enumerate(top_me.iterrows(), 1):
             st.markdown(
                 f"**#{i}** {row['PROVEEDOR'][:55]}  \n"
-                f"{fmt_dolares(row['SALDO_NETO'])}"
+                f"{fmt_dolares_miles(row['SALDO_NETO'])}"
             )
 
     st.markdown("---")
@@ -340,14 +323,14 @@ def render_rankings(df):
         .reset_index()
     )
     prov_rank.insert(0, "N", range(1, len(prov_rank) + 1))
-    prov_rank["Total"] = prov_rank["Total_Saldo"].apply(fmt_soles)
+    prov_rank["Total"] = prov_rank["Total_Saldo"].apply(fmt_soles_miles)
 
     st.dataframe(
         prov_rank[["N", "PROVEEDOR", "Total", "Documentos"]],
         column_config={
             "N": "N",
             "PROVEEDOR": "Proveedor",
-            "Total": "Total Cartera",
+            "Total": "Total Cartera (Miles S/.)",
             "Documentos": "Docs",
         },
         hide_index=True,

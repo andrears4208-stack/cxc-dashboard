@@ -26,3 +26,21 @@ def fmt_num(val):
     if pd.isna(val):
         return "0"
     return f"{val:,.0f}"
+
+
+def fmt_soles_miles(val):
+    if pd.isna(val) or val == 0:
+        return "S/ 0"
+    return f"S/ {val/1000:,.2f}"
+
+
+def fmt_dolares_miles(val):
+    if pd.isna(val) or val == 0:
+        return "US$ 0"
+    return f"US$ {val/1000:,.2f}"
+
+
+def fmt_num_miles(val):
+    if pd.isna(val):
+        return "0"
+    return f"{val/1000:,.2f}"
