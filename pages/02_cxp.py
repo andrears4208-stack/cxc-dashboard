@@ -418,7 +418,6 @@ def main():
             type=["xlsx"],
             help="Sube tu archivo Excel de Cuentas por Pagar",
             key="cxp_uploader",
-            label_visibility="collapsed",
         )
 
         if uploaded_file:
@@ -457,18 +456,17 @@ def main():
 
         all_proveedores = sorted(df["PROVEEDOR"].unique())
         selected_proveedor = st.selectbox(
-            "Proveedor", options=["Todos"] + all_proveedores, label_visibility="collapsed"
+            "Proveedor", options=["Todos"] + all_proveedores
         )
 
         selected_currency = st.selectbox(
             "Moneda",
             options=["Todas", "MN (Soles)", "ME (Dolares)"],
-            label_visibility="collapsed",
         )
 
         all_tipos = sorted(df["TIPDOCU"].unique())
         selected_tipo = st.selectbox(
-            "Tipo Documento", options=["Todos"] + all_tipos, label_visibility="collapsed"
+            "Tipo Documento", options=["Todos"] + all_tipos
         )
 
         has_gasto = "GASTO" in df.columns
@@ -478,17 +476,15 @@ def main():
                 "Categoria Gasto",
                 options=["Todas"] + all_gastos,
                 key="selected_gasto",
-                label_visibility="collapsed",
             )
 
         min_date = df["FVCMO"].min().date()
         max_date = df["FVCMO"].max().date()
         date_range = st.date_input(
-            "Rango fecha vcmto",
+            "Rango fecha vencimiento",
             value=(min_date, max_date),
             min_value=min_date,
             max_value=max_date,
-            label_visibility="collapsed",
         )
 
         min_dias = int(df["DIASPAGO"].min())
@@ -499,7 +495,6 @@ def main():
             max_value=max_dias,
             value=(min_dias, max_dias),
             key="dias_range_cxp",
-            label_visibility="collapsed",
         )
 
     currency_map = {"MN (Soles)": "MN", "ME (Dolares)": "ME"}

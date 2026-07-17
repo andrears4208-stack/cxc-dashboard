@@ -421,7 +421,6 @@ def main():
             type=["xlsx"],
             help="Sube tu archivo Excel de Cuentas por Cobrar",
             key="cxc_uploader",
-            label_visibility="collapsed",
         )
 
         if uploaded_file:
@@ -460,20 +459,19 @@ def main():
 
         all_clients = sorted(df["NOMBRECLIENTE"].unique())
         selected_client = st.selectbox(
-            "Cliente", options=["Todos"] + all_clients, label_visibility="collapsed"
+            "Cliente", options=["Todos"] + all_clients
         )
 
         selected_currency = st.selectbox(
             "Moneda",
             options=["Todas", "MN (Soles)", "ME (Dolares)"],
-            label_visibility="collapsed",
         )
 
         has_tipo = "TIPO" in df.columns
         if has_tipo:
             all_tipos = sorted(df["TIPO"].unique())
             selected_tipo = st.selectbox(
-                "Tipo", options=["Todas"] + all_tipos, label_visibility="collapsed"
+                "Tipo", options=["Todas"] + all_tipos
             )
         else:
             selected_tipo = "Todas"
@@ -483,17 +481,15 @@ def main():
             "Vendedor(es)",
             options=all_vendors,
             placeholder="Selecciona...",
-            label_visibility="collapsed",
         )
 
         min_date = df["FECHAVCMTO"].min().date()
         max_date = df["FECHAVCMTO"].max().date()
         date_range = st.date_input(
-            "Rango fecha vcmto",
+            "Rango fecha vencimiento",
             value=(min_date, max_date),
             min_value=min_date,
             max_value=max_date,
-            label_visibility="collapsed",
         )
 
         min_dias = int(df["DIAS_VENCIDOS"].min())
@@ -504,7 +500,6 @@ def main():
             max_value=max_dias,
             value=(min_dias, max_dias),
             key="dias_range_cxc",
-            label_visibility="collapsed",
         )
 
     currency_map = {"MN (Soles)": "MN", "ME (Dolares)": "ME"}

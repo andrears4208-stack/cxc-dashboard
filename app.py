@@ -53,7 +53,20 @@ div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.stButton bu
 }
 div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.stButton button p {
     margin: 0 !important;
-    font-size: inherit !important;
+    line-height: 1.4 !important;
+}
+div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.stButton button p:first-of-type {
+    font-size: 2.8rem !important;
+    margin-bottom: 0.3rem !important;
+}
+div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.stButton button p:nth-of-type(2) {
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    color: #1a1c23 !important;
+}
+div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.stButton button p:nth-of-type(3) {
+    font-size: 0.8rem !important;
+    color: #6b7280 !important;
 }
 </style>
 """,
@@ -105,13 +118,7 @@ modules = [
 cols = st.columns(4, gap="medium")
 for i, mod in enumerate(modules):
     with cols[i]:
-        label = (
-            f"<span style='font-size:2.8rem; display:block; margin-bottom:0.3rem;'>{mod['icon']}</span>"
-            f"<span style='font-size:1.15rem; font-weight:700; color:#1a1c23;'>{mod['title']}</span>"
-            f"<br>"
-            f"<span style='font-size:0.8rem; color:#6b7280;'>{mod['desc']}</span>"
-        )
-        if st.button(label, key=f"card_{i}", use_container_width=True):
+        if st.button(f"{mod['icon']}\n\n**{mod['title']}**\n\n{mod['desc']}", key=f"card_{i}", use_container_width=True):
             st.switch_page(mod["page"])
 
 st.markdown("---")
