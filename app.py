@@ -1,7 +1,7 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="Dashboard Financiero",
+    page_title="ARES PERU S.A.C. — Dashboard Financiero",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -9,104 +9,110 @@ st.set_page_config(
 
 st.markdown(
     """
-    <style>
-    .card-link {
-        text-decoration: none !important;
-        display: block;
-    }
-    .card-link:hover {
-        text-decoration: none;
-    }
-    .card-link button, .card-link a {
-        text-decoration: none !important;
-    }
-    .card-box {
-        padding: 2rem 1.5rem;
-        border-radius: 16px;
-        background: #f8f9fa;
-        border: 1px solid #e9ecef;
-        text-align: center;
-        transition: all 0.2s ease;
-        margin-bottom: 1rem;
-        cursor: pointer;
-        height: 200px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    }
-    .card-box:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-        border-color: #1f77b4;
-        background: #f0f4ff;
-    }
-    .card-icon {
-        font-size: 3rem;
-        margin-bottom: 0.5rem;
-    }
-    .card-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #1f77b4;
-        margin-bottom: 0.25rem;
-    }
-    .card-desc {
-        font-size: 0.85rem;
-        color: #6c757d;
-        line-height: 1.4;
-    }
-    .stPageLink {
-        text-decoration: none !important;
-    }
-    </style>
-    """,
+<style>
+/* ─── Reset page chrome ─── */
+header { display: none !important; }
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+.stApp > header { display: none !important; }
+
+/* ─── Card buttons ─── */
+div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.stButton {
+    width: 100%;
+}
+div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.stButton button {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-height: 230px !important;
+    padding: 2rem 1.5rem !important;
+    border-radius: 16px !important;
+    background: #ffffff !important;
+    border: 1px solid #e6e9ef !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
+    transition: all 0.25s ease !important;
+    cursor: pointer !important;
+    text-align: center !important;
+    line-height: 1.5 !important;
+    color: inherit !important;
+    font-family: inherit !important;
+    font-size: 0.9rem !important;
+}
+div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.stButton button:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.1) !important;
+    border-color: #1f77b4 !important;
+    background: #f6faff !important;
+}
+div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.stButton button:active {
+    transform: translateY(-1px) !important;
+    border-color: #155a8a !important;
+    background: #eaf2fb !important;
+}
+div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.stButton button p {
+    margin: 0 !important;
+    font-size: inherit !important;
+}
+</style>
+""",
     unsafe_allow_html=True,
 )
 
-st.title("📊 Dashboard Financiero Integral")
-st.markdown("Selecciona un módulo para comenzar:")
+col_logo, col_title = st.columns([1, 7])
+with col_logo:
+    st.markdown(
+        '<div style="font-size:2.8rem; line-height:1;">📊</div>',
+        unsafe_allow_html=True,
+    )
+with col_title:
+    st.markdown("### ARES PERU S.A.C.")
+    st.markdown(
+        '<span style="color:#6b7280; font-size:0.95rem;">Dashboard Financiero Integral</span>',
+        unsafe_allow_html=True,
+    )
+
 st.markdown("---")
 
 modules = [
     {
         "icon": "💰",
         "title": "CxC",
-        "desc": "Cuentas por Cobrar<br>Clientes, facturación y cobranzas",
+        "desc": "Cuentas por Cobrar · Clientes, facturación y cobranzas",
         "page": "pages/01_cxc.py",
     },
     {
         "icon": "📄",
         "title": "CxP",
-        "desc": "Cuentas por Pagar<br>Proveedores, vencimientos y pagos",
+        "desc": "Cuentas por Pagar · Proveedores, vencimientos y pagos",
         "page": "pages/02_cxp.py",
     },
     {
         "icon": "📈",
         "title": "Comercial",
-        "desc": "Gestión Comercial<br>Ventas, metas y comisiones",
+        "desc": "Gestión Comercial · Ventas, metas y comisiones",
         "page": "pages/03_comercial.py",
     },
     {
         "icon": "🏦",
         "title": "Caja y Bancos",
-        "desc": "Tesorería<br>Movimientos, saldos y conciliación",
+        "desc": "Tesorería · Movimientos, saldos y conciliación",
         "page": "pages/04_caja_bancos.py",
     },
 ]
 
-cols = st.columns(4)
+cols = st.columns(4, gap="medium")
 for i, mod in enumerate(modules):
     with cols[i]:
-        st.markdown(
-            f'<div class="card-box">'
-            f'<div class="card-icon">{mod["icon"]}</div>'
-            f'<div class="card-title">{mod["title"]}</div>'
-            f'<div class="card-desc">{mod["desc"]}</div>'
-            f'</div>',
-            unsafe_allow_html=True,
+        label = (
+            f"<span style='font-size:2.8rem; display:block; margin-bottom:0.3rem;'>{mod['icon']}</span>"
+            f"<span style='font-size:1.15rem; font-weight:700; color:#1a1c23;'>{mod['title']}</span>"
+            f"<br>"
+            f"<span style='font-size:0.8rem; color:#6b7280;'>{mod['desc']}</span>"
         )
-        st.page_link(mod["page"], label=f"Ingresar", use_container_width=True)
+        if st.button(label, key=f"card_{i}", use_container_width=True):
+            st.switch_page(mod["page"])
 
 st.markdown("---")
-st.caption("Carga tu archivo Excel en cada módulo para visualizar los datos.")
+st.caption("Selecciona un módulo para comenzar")

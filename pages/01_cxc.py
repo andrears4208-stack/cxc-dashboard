@@ -5,12 +5,32 @@ from datetime import datetime
 
 from utils.formatting import fmt_soles, fmt_dolares, fmt_num, MONTH_NAMES
 from utils.data import process_cxc
+from components.sidebar import render as render_sidebar
 
 st.set_page_config(
-    page_title="CxC - Dashboard",
+    page_title="CxC — ARES PERU S.A.C.",
     page_icon="💰",
     layout="wide",
     initial_sidebar_state="expanded",
+)
+
+st.markdown(
+    """
+<style>
+[data-testid="stSidebarNav"] { display: none; }
+[data-testid="stSidebar"] { background: #f7f8fa; }
+[data-testid="stSidebar"] .stPageLink a {
+    padding: 0.4rem 0.6rem !important;
+    border-radius: 8px !important;
+    transition: background 0.15s;
+    font-size: 0.85rem !important;
+}
+[data-testid="stSidebar"] .stPageLink a:hover {
+    background: #e8ecf1 !important;
+}
+</style>
+""",
+    unsafe_allow_html=True,
 )
 
 
@@ -32,8 +52,6 @@ def render_dashboard(df, df_original):
         st.metric("Clientes con Deuda", fmt_num(clientes_deuda))
     with kpi_cols[3]:
         st.metric("Total Documentos", fmt_num(num_docs))
-
-    st.markdown("")
     st.metric(
         "Saldo Neto (convertido a Soles)",
         fmt_soles(neto_soles),
@@ -54,7 +72,6 @@ def render_dashboard(df, df_original):
                 ).sum(),
                 "Neto": d["SALDO_NETO_SOLES"].sum(),
             }
-
         row_data = []
         labels = {
             "MN": "Total CxC MN",
@@ -73,16 +90,14 @@ def render_dashboard(df, df_original):
             for tipo in sorted(df_original["TIPO"].unique()):
                 entry[tipo] = formatters[key](resumen[tipo][key])
             row_data.append(entry)
-        tipo_df = pd.DataFrame(row_data)
         st.dataframe(
-            tipo_df,
+            pd.DataFrame(row_data),
             column_config={"Métrica": "Métrica"},
             hide_index=True,
             use_container_width=True,
         )
 
     st.markdown("---")
-
     col_left, col_right = st.columns(2)
 
     with col_left:
@@ -316,7 +331,6 @@ def render_rankings(df):
 
     st.markdown("---")
     st.subheader("Cartera por Vendedor (Ranking)")
-
     vendor_rank = (
         df.groupby("VENDEDOR")
         .agg(
@@ -389,8 +403,7 @@ def render_table(df):
 
 
 def main():
-    st.title("💰 Cuentas por Cobrar")
-    st.markdown("---")
+    render_sidebar("Cuentas por Cobrar")
 
     if "df_cxc" not in st.session_state:
         st.session_state.df_cxc = None
@@ -402,16 +415,13 @@ def main():
         st.session_state.loaded_at_cxc = None
 
     with st.sidebar:
-        st.page_link("app.py", label="⬅ Volver al inicio", icon="🏠")
-        st.markdown("---")
-
-        st.header("Datos")
-
+        st.markdown("**📁 Datos**")
         uploaded_file = st.file_uploader(
             "Cargar archivo Excel",
             type=["xlsx"],
             help="Sube tu archivo Excel de Cuentas por Cobrar",
             key="cxc_uploader",
+            label_visibility="collapsed",
         )
 
         if uploaded_file:
@@ -423,9 +433,6 @@ def main():
                         st.session_state.file_key_cxc = file_key
                         st.session_state.file_name_cxc = uploaded_file.name
                         st.session_state.loaded_at_cxc = datetime.now()
-                        st.success(
-                            f"{len(st.session_state.df_cxc)} registros cargados"
-                        )
                         st.rerun()
                     except Exception as e:
                         st.error(f"Error al procesar el archivo: {e}")
@@ -434,39 +441,40 @@ def main():
         df = st.session_state.df_cxc
 
         if df is None:
-            st.warning("Sube un archivo Excel para comenzar.")
-            st.markdown("---")
             st.info(
-                "**Instrucciones:**\n"
-                "1. Prepara tu archivo Excel de CxC\n"
-                "2. Usa el boton de arriba para subirlo\n"
-                "3. Solo tu veras tus datos"
+                "Sube un archivo Excel de Cuentas por Cobrar para comenzar.\n\n"
+                "**Formato esperado:** columnas CODIGOCLIENTE, NOMBRECLIENTE, "
+                "TIPODOC, NUMERO, FECHAEMISION, FECHAVCMTO, DIAS_VENCIDOS, "
+                "VENDEDOR, MONEDA, SALDO (S/.), SALDO (US$), TIPOCAMBIO"
             )
             st.stop()
 
-        st.info(f"{len(df)} registros cargados")
-        if st.session_state.loaded_at_cxc:
-            st.caption(
-                f"Archivo: {st.session_state.file_name_cxc} | "
-                f"{st.session_state.loaded_at_cxc.strftime('%d/%m/%Y %H:%M')}"
-            )
+        st.caption(
+            f"{len(df)} registros  ·  "
+            f"{st.session_state.file_name_cxc or ''}  ·  "
+            f"{st.session_state.loaded_at_cxc.strftime('%d/%m/%Y %H:%M') if st.session_state.loaded_at_cxc else ''}"
+        )
 
-        st.markdown("---")
-        st.header("Filtros")
+        st.divider()
+        st.markdown("**🔍 Filtros**")
 
         all_clients = sorted(df["NOMBRECLIENTE"].unique())
         selected_client = st.selectbox(
-            "Cliente", options=["Todos"] + all_clients
+            "Cliente", options=["Todos"] + all_clients, label_visibility="collapsed"
         )
 
         selected_currency = st.selectbox(
-            "Moneda", options=["Todas", "MN (Soles)", "ME (Dolares)"]
+            "Moneda",
+            options=["Todas", "MN (Soles)", "ME (Dolares)"],
+            label_visibility="collapsed",
         )
 
         has_tipo = "TIPO" in df.columns
         if has_tipo:
             all_tipos = sorted(df["TIPO"].unique())
-            selected_tipo = st.selectbox("Tipo", options=["Todas"] + all_tipos)
+            selected_tipo = st.selectbox(
+                "Tipo", options=["Todas"] + all_tipos, label_visibility="collapsed"
+            )
         else:
             selected_tipo = "Todas"
 
@@ -474,25 +482,29 @@ def main():
         selected_vendors = st.multiselect(
             "Vendedor(es)",
             options=all_vendors,
-            placeholder="Selecciona vendedores...",
+            placeholder="Selecciona...",
+            label_visibility="collapsed",
         )
 
         min_date = df["FECHAVCMTO"].min().date()
         max_date = df["FECHAVCMTO"].max().date()
         date_range = st.date_input(
-            "Rango fecha vencimiento",
+            "Rango fecha vcmto",
             value=(min_date, max_date),
             min_value=min_date,
             max_value=max_date,
+            label_visibility="collapsed",
         )
 
         min_dias = int(df["DIAS_VENCIDOS"].min())
         max_dias = int(df["DIAS_VENCIDOS"].max())
-        dias_range = st.slider(
+        st.slider(
             "Dias vencidos",
             min_value=min_dias,
             max_value=max_dias,
             value=(min_dias, max_dias),
+            key="dias_range_cxc",
+            label_visibility="collapsed",
         )
 
     currency_map = {"MN (Soles)": "MN", "ME (Dolares)": "ME"}
@@ -510,6 +522,7 @@ def main():
             (filtered["FECHAVCMTO"].dt.date >= d_start)
             & (filtered["FECHAVCMTO"].dt.date <= d_end)
         ]
+    dias_range = st.session_state.dias_range_cxc
     filtered = filtered[
         (filtered["DIAS_VENCIDOS"] >= dias_range[0])
         & (filtered["DIAS_VENCIDOS"] <= dias_range[1])
@@ -517,20 +530,18 @@ def main():
     if "TIPO" in filtered.columns and selected_tipo != "Todas":
         filtered = filtered[filtered["TIPO"] == selected_tipo]
 
+    st.markdown(f"## 💰 Cuentas por Cobrar")
     tab1, tab2, tab3 = st.tabs(["Dashboard", "Rankings", "Tabla Detallada"])
 
     with tab1:
         render_dashboard(filtered, df)
-
     with tab2:
         render_rankings(filtered)
-
     with tab3:
         render_table(filtered)
 
-    st.markdown("---")
     st.caption(
-        f"{len(filtered)} registros de {len(df)} totales | "
+        f"{len(filtered)} registros de {len(df)} totales  ·  "
         f"Actualizado: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
     )
 
