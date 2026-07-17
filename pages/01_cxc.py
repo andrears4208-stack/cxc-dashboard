@@ -234,7 +234,7 @@ def render_dashboard(df, df_original):
             st.plotly_chart(fig, use_container_width=True)
 
     with col_tipo:
-        st.subheader("Distribucion por Tipo")
+        st.subheader("Distribucion por Tipo de Empresa")
         if has_tipo:
             tipo_agg = (
                 df.groupby("TIPO")["SALDO_NETO_SOLES"].sum().reset_index()
@@ -471,7 +471,7 @@ def main():
         if has_tipo:
             all_tipos = sorted(df["TIPO"].unique())
             selected_tipo = st.selectbox(
-                "Tipo", options=["Todas"] + all_tipos
+                "Tipo de Empresa", options=["Todas"] + all_tipos
             )
         else:
             selected_tipo = "Todas"
