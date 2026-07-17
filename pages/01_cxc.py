@@ -74,10 +74,10 @@ def render_dashboard(df, df_original):
             }
         row_data = []
         labels = {
-            "MN": "Total CxC MN",
-            "ME": "Total CxC ME",
+            "MN": "Total CxC MN (Miles)",
+            "ME": "Total CxC ME (Miles)",
             "Clientes": "Clientes con Deuda",
-            "Neto": "Saldo Neto",
+            "Neto": "Saldo Neto (Miles)",
         }
         formatters = {
             "MN": fmt_soles_miles,

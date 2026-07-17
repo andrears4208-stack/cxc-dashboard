@@ -73,10 +73,10 @@ def render_dashboard(df):
             }
         row_data = []
         labels = {
-            "MN": "Total CxP MN",
-            "ME": "Total CxP ME",
+            "MN": "Total CxP MN (Miles)",
+            "ME": "Total CxP ME (Miles)",
             "Proveedores": "Proveedores con Deuda",
-            "Neto": "Saldo Neto",
+            "Neto": "Saldo Neto (Miles)",
         }
         formatters = {
             "MN": fmt_soles_miles,
