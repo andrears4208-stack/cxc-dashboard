@@ -35,6 +35,5 @@ def render(title="Dashboard Financiero"):
             label="Caja y Bancos",
             icon="🏦",
             use_container_width=True,
-            disabled=True,
         )
         st.divider()

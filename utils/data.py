@@ -98,3 +98,35 @@ def process_cxp(file_buffer):
     df = add_month_column(df, "FEMISION")
 
     return df
+
+
+CAJA_BANCOS_REQUIRED = [
+    "CODBCO", "MVTO", "FECHA", "CB_N_MTOMN", "CB_N_MTOME", "BANCO",
+    "DESCCTAC",
+]
+
+
+def process_caja_bancos(file_buffer):
+    df = load_excel(file_buffer)
+    df.columns = df.columns.str.strip()
+    validate_columns(df, CAJA_BANCOS_REQUIRED, "Caja y Bancos")
+
+    df["MONEDA"] = df["BANCO"].str.extract(r"(MN|ME)$", expand=False)
+
+    sign = df["MVTO"].map({"INGRESO": 1, "SALIDA": -1}).fillna(1)
+
+    df["SALDO_MN"] = df["CB_N_MTOMN"] * sign
+    df["SALDO_ME"] = df["CB_N_MTOME"] * sign
+
+    es_mn = df["MONEDA"] == "MN"
+    df["SALDO_NETO"] = df["SALDO_MN"].where(es_mn, df["SALDO_ME"])
+    df["SALDO_NETO_SOLES"] = df["SALDO_MN"]
+
+    df["FECHA"] = pd.to_datetime(df["FECHA"], dayfirst=True)
+    df["PERIODO_MES"] = df["FECHA"].dt.to_period("M").astype(str)
+    df["PERIODO_SEMANA"] = df["FECHA"].dt.isocalendar().week.astype(str)
+    df["MES_NOMBRE"] = df["FECHA"].dt.month_name().str.upper()
+    df["BANCO"] = df["BANCO"].str.strip()
+    df["DESCCTAC"] = df["DESCCTAC"].str.strip()
+
+    return df
