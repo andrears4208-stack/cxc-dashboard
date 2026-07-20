@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.express as px
 from datetime import datetime
 
-from utils.formatting import fmt_soles, fmt_dolares, fmt_num
+from utils.formatting import fmt_soles, fmt_dolares, fmt_num, fmt_soles_miles, fmt_dolares_miles, fmt_num_miles
 from utils.data import process_caja_bancos
 from components.sidebar import render as render_sidebar
 
@@ -45,13 +46,13 @@ def render_dashboard(df):
 
     cols1 = st.columns(4)
     with cols1[0]:
-        st.metric("Ingresos MN", fmt_soles(ing_mn))
+        st.metric("Ingresos MN (Miles)", fmt_soles_miles(ing_mn))
     with cols1[1]:
-        st.metric("Ingresos ME", fmt_dolares(ing_me))
+        st.metric("Ingresos ME (Miles)", fmt_dolares_miles(ing_me))
     with cols1[2]:
-        st.metric("Egresos MN", fmt_soles(abs(egr_mn)))
+        st.metric("Egresos MN (Miles)", fmt_soles_miles(abs(egr_mn)))
     with cols1[3]:
-        st.metric("Egresos ME", fmt_dolares(abs(egr_me)))
+        st.metric("Egresos ME (Miles)", fmt_dolares_miles(abs(egr_me)))
 
     cols2 = st.columns(3)
     with cols2[0]:
@@ -158,6 +159,73 @@ def render_dashboard(df):
         hovermode="x unified",
     )
     st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("---")
+    st.subheader("Ingresos por Banco")
+
+    ingresos_df = df[df["MVTO"] == "INGRESO"]
+    ing_mn_bank = (
+        ingresos_df[ingresos_df["MONEDA"] == "MN"]
+        .groupby("BANCO")["MONTO_MN"]
+        .sum()
+        .sort_values(ascending=True)
+        .reset_index()
+    )
+    ing_me_bank = (
+        ingresos_df[ingresos_df["MONEDA"] == "ME"]
+        .groupby("BANCO")["MONTO_ME"]
+        .sum()
+        .sort_values(ascending=True)
+        .reset_index()
+    )
+
+    col_b1, col_b2 = st.columns(2)
+
+    with col_b1:
+        if not ing_mn_bank.empty:
+            ing_mn_bank["texto"] = ing_mn_bank["MONTO_MN"].apply(fmt_num_miles)
+            fig_mn = px.bar(
+                ing_mn_bank,
+                x="MONTO_MN",
+                y="BANCO",
+                orientation="h",
+                text="texto",
+                color="MONTO_MN",
+                color_continuous_scale="Blues",
+                height=350,
+            )
+            fig_mn.update_layout(
+                xaxis_title="Miles de Soles",
+                yaxis_title="",
+                margin=dict(l=0, r=0, t=10, b=0),
+            )
+            fig_mn.update_traces(textposition="auto")
+            st.plotly_chart(fig_mn, use_container_width=True)
+        else:
+            st.info("Sin datos de ingresos MN")
+
+    with col_b2:
+        if not ing_me_bank.empty:
+            ing_me_bank["texto"] = ing_me_bank["MONTO_ME"].apply(fmt_num_miles)
+            fig_me = px.bar(
+                ing_me_bank,
+                x="MONTO_ME",
+                y="BANCO",
+                orientation="h",
+                text="texto",
+                color="MONTO_ME",
+                color_continuous_scale="Greens",
+                height=350,
+            )
+            fig_me.update_layout(
+                xaxis_title="Miles de Dolares",
+                yaxis_title="",
+                margin=dict(l=0, r=0, t=10, b=0),
+            )
+            fig_me.update_traces(textposition="auto")
+            st.plotly_chart(fig_me, use_container_width=True)
+        else:
+            st.info("Sin datos de ingresos ME")
 
     st.markdown("---")
     st.subheader("Distribucion por Tipo de Movimiento")
