@@ -1,10 +1,9 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 
-from utils.formatting import fmt_soles, fmt_dolares, fmt_num, fmt_soles_miles, fmt_dolares_miles, fmt_num_miles
+from utils.formatting import fmt_soles, fmt_dolares, fmt_num
 from utils.data import process_caja_bancos
 from components.sidebar import render as render_sidebar
 
@@ -37,91 +36,33 @@ st.markdown(
 
 def render_dashboard(df):
     ingresos = df[df["MVTO"] == "INGRESO"]
-    salidas = df[df["MVTO"] == "SALIDA"]
+    egresos = df[df["MVTO"] == "SALIDA"]
 
-    total_ing_mn = ingresos["SALDO_MN"].sum()
-    total_ing_me = ingresos["SALDO_ME"].sum()
-    total_sal_mn = salidas["SALDO_MN"].sum()
-    total_sal_me = salidas["SALDO_ME"].sum()
-    saldo_neto_mn = df["SALDO_MN"].sum()
-    saldo_neto_me = df["SALDO_ME"].sum()
-    saldo_neto_soles = df["SALDO_NETO_SOLES"].sum()
-    num_mvtos = len(df)
+    ing_mn = ingresos[ingresos["MONEDA"] == "MN"]["MONTO_MN"].sum()
+    ing_me = ingresos[ingresos["MONEDA"] == "ME"]["MONTO_ME"].sum()
+    egr_mn = egresos[egresos["MONEDA"] == "MN"]["MONTO_MN"].sum()
+    egr_me = egresos[egresos["MONEDA"] == "ME"]["MONTO_ME"].sum()
 
-    kpi_cols = st.columns(6)
-    with kpi_cols[0]:
-        st.metric("Ingresos MN (Miles)", fmt_soles_miles(total_ing_mn))
-    with kpi_cols[1]:
-        st.metric("Ingresos ME (Miles)", fmt_dolares_miles(total_ing_me))
-    with kpi_cols[2]:
-        st.metric("Salidas MN (Miles)", fmt_soles_miles(abs(total_sal_mn)))
-    with kpi_cols[3]:
-        st.metric("Salidas ME (Miles)", fmt_dolares_miles(abs(total_sal_me)))
-    with kpi_cols[4]:
-        st.metric("Saldo Neto (Miles S/.)", fmt_soles_miles(saldo_neto_soles))
-    with kpi_cols[5]:
-        st.metric("Total Movimientos", fmt_num(num_mvtos))
+    cols1 = st.columns(4)
+    with cols1[0]:
+        st.metric("Ingresos MN", fmt_soles(ing_mn))
+    with cols1[1]:
+        st.metric("Ingresos ME", fmt_dolares(ing_me))
+    with cols1[2]:
+        st.metric("Egresos MN", fmt_soles(abs(egr_mn)))
+    with cols1[3]:
+        st.metric("Egresos ME", fmt_dolares(abs(egr_me)))
 
-    saldo_inicial = st.session_state.get("saldo_inicial_cb", 0)
-    if saldo_inicial:
-        st.metric(
-            "Saldo Acumulado (Miles S/.)",
-            fmt_soles_miles(saldo_inicial + saldo_neto_soles),
-            delta=fmt_soles_miles(saldo_neto_soles),
-        )
+    cols2 = st.columns(3)
+    with cols2[0]:
+        st.metric("Total Movimientos", fmt_num(len(df)))
+    with cols2[1]:
+        st.metric("Total Ingresos", fmt_num(len(ingresos)))
+    with cols2[2]:
+        st.metric("Total Egresos", fmt_num(len(egresos)))
 
     st.markdown("---")
-    col_left, col_right = st.columns(2)
-
-    with col_left:
-        st.subheader("Saldos por Banco")
-        banco_agg = (
-            df.groupby("BANCO")["SALDO_NETO_SOLES"]
-            .sum()
-            .sort_values(ascending=True)
-            .reset_index()
-        )
-        banco_agg["texto"] = banco_agg["SALDO_NETO_SOLES"].apply(fmt_num_miles)
-        fig = px.bar(
-            banco_agg,
-            x="SALDO_NETO_SOLES",
-            y="BANCO",
-            orientation="h",
-            text="texto",
-            color="SALDO_NETO_SOLES",
-            color_continuous_scale="Blues",
-            height=400,
-        )
-        fig.update_layout(
-            xaxis_title="Miles de Soles",
-            yaxis_title="",
-            margin=dict(l=0, r=0, t=10, b=0),
-        )
-        fig.update_traces(textposition="auto")
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col_right:
-        st.subheader("Distribucion por Moneda")
-        curr_agg = df.groupby("MONEDA")["SALDO_NETO_SOLES"].sum().reset_index()
-        curr_agg["LABEL"] = curr_agg["MONEDA"].map(
-            {"MN": "Soles (MN)", "ME": "Dolares (ME)"}
-        )
-        fig = px.pie(
-            curr_agg,
-            values="SALDO_NETO_SOLES",
-            names="LABEL",
-            color="LABEL",
-            color_discrete_map={"Soles (MN)": "#1f77b4", "Dolares (ME)": "#ff7f0e"},
-            hole=0.4,
-            height=400,
-        )
-        fig.update_layout(
-            margin=dict(l=0, r=0, t=10, b=0), legend=dict(orientation="h", y=-0.1)
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("---")
-    st.subheader("Flujo de Caja")
+    st.subheader("Evolucion de Ingresos y Egresos")
 
     periodo_opcion = st.radio(
         "Periodicidad",
@@ -130,198 +71,111 @@ def render_dashboard(df):
         key="periodo_cb",
     )
 
+    df_linea = df.copy()
     if periodo_opcion == "Mensual":
-        df["PERIODO"] = df["PERIODO_MES"]
-        sort_key = df["FECHA"].dt.to_period("M")
+        df_linea["PERIODO"] = df_linea["PERIODO_MES"]
     else:
-        df["PERIODO"] = df["FECHA"].dt.isocalendar().week.astype(int).astype(str)
-        df["PERIODO"] = df["FECHA"].dt.year.astype(str) + "-S" + df["PERIODO"].str.zfill(2)
-        sort_key = df["FECHA"].dt.isocalendar().week.astype(int)
+        wk = df_linea["FECHA"].dt.isocalendar().week.astype(int)
+        yr = df_linea["FECHA"].dt.year.astype(str)
+        df_linea["PERIODO"] = yr + "-S" + wk.astype(str).str.zfill(2)
 
     flow = (
-        df.groupby(["PERIODO", "MVTO"])["SALDO_NETO_SOLES"]
+        df_linea.groupby(["PERIODO", "MONEDA", "MVTO"])[["MONTO_MN", "MONTO_ME"]]
         .sum()
-        .unstack(fill_value=0)
         .reset_index()
     )
 
-    for col in ["INGRESO", "SALIDA"]:
-        if col not in flow.columns:
-            flow[col] = 0
+    flow_pivot = flow.pivot_table(
+        index="PERIODO",
+        columns=["MONEDA", "MVTO"],
+        values=["MONTO_MN", "MONTO_ME"],
+        fill_value=0,
+    )
+    flow_pivot.columns = [f"{c[1]}_{c[2]}" for c in flow_pivot.columns]
+    flow_pivot = flow_pivot.reset_index()
 
-    flow["Salida"] = flow["SALIDA"].abs()
-    flow["Neto"] = flow["INGRESO"] + flow["SALIDA"]
+    for col in ["MN_INGRESO", "MN_SALIDA", "ME_INGRESO", "ME_SALIDA"]:
+        if col not in flow_pivot.columns:
+            flow_pivot[col] = 0.0
 
-    saldo_acum = saldo_inicial
-    acumulados = []
-    for _, row in flow.iterrows():
-        saldo_acum += row["Neto"]
-        acumulados.append(saldo_acum)
-    flow["Acumulado"] = acumulados
+    flow_pivot = flow_pivot.sort_values("PERIODO")
 
     fig = go.Figure()
-    fig.add_trace(go.Bar(
-        name="Ingresos",
-        x=flow["PERIODO"],
-        y=flow["INGRESO"],
+
+    fig.add_trace(go.Scatter(
+        name="Ingresos MN (S/.)",
+        x=flow_pivot["PERIODO"],
+        y=flow_pivot["MN_INGRESO"],
+        mode="lines+markers",
         marker_color="#1f77b4",
-    ))
-    fig.add_trace(go.Bar(
-        name="Salidas",
-        x=flow["PERIODO"],
-        y=flow["Salida"],
-        marker_color="#ff7f0e",
+        line=dict(width=3),
+        yaxis="y",
     ))
     fig.add_trace(go.Scatter(
-        name="Acumulado",
-        x=flow["PERIODO"],
-        y=flow["Acumulado"],
+        name="Egresos MN (S/.)",
+        x=flow_pivot["PERIODO"],
+        y=flow_pivot["MN_SALIDA"].abs(),
+        mode="lines+markers",
+        marker_color="#ff7f0e",
+        line=dict(width=3, dash="dash"),
+        yaxis="y",
+    ))
+    fig.add_trace(go.Scatter(
+        name="Ingresos ME (US$)",
+        x=flow_pivot["PERIODO"],
+        y=flow_pivot["ME_INGRESO"],
         mode="lines+markers",
         marker_color="#2ca02c",
-        yaxis="y2",
         line=dict(width=3),
+        yaxis="y2",
+    ))
+    fig.add_trace(go.Scatter(
+        name="Egresos ME (US$)",
+        x=flow_pivot["PERIODO"],
+        y=flow_pivot["ME_SALIDA"].abs(),
+        mode="lines+markers",
+        marker_color="#d62728",
+        line=dict(width=3, dash="dash"),
+        yaxis="y2",
     ))
 
     fig.update_layout(
-        barmode="group",
         height=450,
         margin=dict(l=0, r=0, t=10, b=0),
-        legend=dict(orientation="h", y=-0.2),
+        legend=dict(orientation="h", y=-0.25),
         xaxis_title="Periodo",
-        yaxis_title="Miles de Soles",
+        yaxis=dict(
+            title="Soles (S/.)",
+            side="left",
+            showgrid=True,
+        ),
         yaxis2=dict(
-            overlaying="y",
+            title="Dolares (US$)",
             side="right",
-            title="Acumulado (Miles S/.)",
+            overlaying="y",
             showgrid=False,
         ),
+        hovermode="x unified",
     )
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("---")
-    col_down, col_right2 = st.columns(2)
-
-    with col_down:
-        st.subheader("Movimientos por Tipo")
-        tipo_agg = df["MVTO"].value_counts().reset_index()
-        tipo_agg.columns = ["MVTO", "Cantidad"]
-        fig = px.pie(
-            tipo_agg,
-            values="Cantidad",
-            names="MVTO",
-            color="MVTO",
-            color_discrete_map={"INGRESO": "#1f77b4", "SALIDA": "#ff7f0e"},
-            hole=0.4,
-            height=350,
-        )
-        fig.update_layout(margin=dict(l=0, r=0, t=10, b=0))
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col_right2:
-        st.subheader("Top Cuentas Contables")
-        desc_agg = (
-            df.groupby("DESCCTAC")["SALDO_NETO_SOLES"]
-            .sum()
-            .abs()
-            .sort_values(ascending=True)
-            .tail(10)
-            .reset_index()
-        )
-        desc_agg["texto"] = desc_agg["SALDO_NETO_SOLES"].apply(fmt_num_miles)
-        fig = px.bar(
-            desc_agg,
-            x="SALDO_NETO_SOLES",
-            y="DESCCTAC",
-            orientation="h",
-            text="texto",
-            color="SALDO_NETO_SOLES",
-            color_continuous_scale="Viridis",
-            height=350,
-        )
-        fig.update_layout(
-            xaxis_title="Miles de Soles",
-            yaxis_title="",
-            margin=dict(l=0, r=0, t=10, b=0),
-        )
-        fig.update_traces(textposition="auto")
-        st.plotly_chart(fig, use_container_width=True)
-
-
-def render_rankings(df):
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.subheader("Top Bancos por Saldo Neto")
-        top_bancos = (
-            df.groupby("BANCO")["SALDO_NETO_SOLES"]
-            .sum()
-            .sort_values(ascending=False)
-            .reset_index()
-        )
-        for i, (_, row) in enumerate(top_bancos.iterrows(), 1):
-            st.markdown(
-                f"**#{i}** {row['BANCO'][:55]}  \n"
-                f"{fmt_soles_miles(row['SALDO_NETO_SOLES'])}"
-            )
-
-    with col2:
-        st.subheader("Top Anexos por Movimiento")
-        if "ANEXO" in df.columns:
-            anexo_agg = (
-                df.groupby("ANEXO")["SALDO_NETO_SOLES"]
-                .sum()
-                .abs()
-                .sort_values(ascending=False)
-                .reset_index()
-            )
-            for i, (_, row) in enumerate(anexo_agg.iterrows(), 1):
-                label = row["ANEXO"] if pd.notna(row["ANEXO"]) else "SIN ANEXO"
-                st.markdown(
-                    f"**#{i}** {label[:55]}  \n"
-                    f"{fmt_soles_miles(row['SALDO_NETO_SOLES'])}"
-                )
-        else:
-            st.info("Columna ANEXO no disponible")
-
-    st.markdown("---")
-    st.subheader("Ranking de Cuentas Contables (Mayor Movimiento)")
-
-    has_anexo = "ANEXO" in df.columns
-    group_cols = ["DESCCTAC"]
-    if has_anexo:
-        group_cols = ["DESCCTAC", "ANEXO"]
-
-    cuentas_rank = (
-        df.groupby(group_cols)
-        .agg(
-            Total_MN=("SALDO_MN", "sum"),
-            Total_ME=("SALDO_ME", "sum"),
-            Movimientos=("SECUENCIA", "count"),
-        )
-        .sort_values("Movimientos", ascending=False)
-        .reset_index()
+    st.subheader("Distribucion por Tipo de Movimiento")
+    tipo_agg = df["MVTO"].value_counts().reset_index()
+    tipo_agg.columns = ["MVTO", "Cantidad"]
+    tipo_agg["MVTO"] = tipo_agg["MVTO"].map({"INGRESO": "Ingresos", "SALIDA": "Egresos"})
+    fig2 = go.Figure(data=[go.Pie(
+        labels=tipo_agg["MVTO"],
+        values=tipo_agg["Cantidad"],
+        hole=0.4,
+        marker_colors=["#1f77b4", "#ff7f0e"],
+    )])
+    fig2.update_layout(
+        height=350,
+        margin=dict(l=0, r=0, t=10, b=0),
+        legend=dict(orientation="h", y=-0.2),
     )
-    cuentas_rank.insert(0, "N", range(1, len(cuentas_rank) + 1))
-    cuentas_rank["Total MN"] = cuentas_rank["Total_MN"].apply(fmt_soles_miles)
-    cuentas_rank["Total ME"] = cuentas_rank["Total_ME"].apply(fmt_dolares_miles)
-
-    display_cols = ["N", "DESCCTAC", "Total MN", "Total ME", "Movimientos"]
-    if has_anexo:
-        display_cols = ["N", "DESCCTAC", "ANEXO", "Total MN", "Total ME", "Movimientos"]
-
-    st.dataframe(
-        cuentas_rank[display_cols],
-        column_config={
-            "N": "N",
-            "DESCCTAC": "Cuenta Contable",
-            "ANEXO": "Anexo",
-            "Total MN": "Total MN (Miles S/.)",
-            "Total ME": "Total ME (Miles US$)",
-            "Movimientos": "Mov.",
-        },
-        hide_index=True,
-        use_container_width=True,
-    )
+    st.plotly_chart(fig2, use_container_width=True)
 
 
 def render_table(df):
@@ -338,6 +192,7 @@ def render_table(df):
     display_df["FECHA"] = display_df["FECHA"].dt.strftime("%d/%m/%Y")
     display_df["CB_N_MTOMN"] = display_df["CB_N_MTOMN"].apply(fmt_soles)
     display_df["CB_N_MTOME"] = display_df["CB_N_MTOME"].apply(fmt_dolares)
+    display_df["MVTO"] = display_df["MVTO"].map({"INGRESO": "Ingreso", "SALIDA": "Egreso"})
 
     col_map = {
         "BANCO": "Banco",
@@ -367,7 +222,7 @@ def render_table(df):
 
     st.dataframe(display_df, hide_index=True, use_container_width=True, height=500)
 
-    csv = df.to_csv(index=False).encode("utf-8-sig")
+    csv = df.to_csv(index=False).encoding("utf-8-sig")
     st.download_button(
         label="Descargar CSV",
         data=csv,
@@ -387,8 +242,6 @@ def main():
         st.session_state.file_name_cb = None
     if "loaded_at_cb" not in st.session_state:
         st.session_state.loaded_at_cb = None
-    if "saldo_inicial_cb" not in st.session_state:
-        st.session_state.saldo_inicial_cb = 0.0
 
     with st.sidebar:
         st.markdown("**📁 Datos**")
@@ -458,23 +311,13 @@ def main():
 
         min_date = df["FECHA"].min().date()
         max_date = df["FECHA"].max().date()
-        date_range = st.date_input(
+        st.date_input(
             "Rango de fechas",
             value=(min_date, max_date),
             min_value=min_date,
             max_value=max_date,
+            key="date_range_cb",
         )
-
-        st.divider()
-        st.markdown("**💰 Saldo Inicial**")
-        saldo_inicial = st.number_input(
-            "Saldo inicial (Soles)",
-            value=st.session_state.saldo_inicial_cb,
-            step=1000.0,
-            format="%.2f",
-            key="saldo_input_cb",
-        )
-        st.session_state.saldo_inicial_cb = saldo_inicial
 
     currency_map = {"MN (Soles)": "MN", "ME (Dolares)": "ME"}
     filtered = df.copy()
@@ -487,6 +330,7 @@ def main():
         filtered = filtered[filtered["MONEDA"] == currency_map[selected_currency]]
     if has_anexo and selected_anexo != "Todos":
         filtered = filtered[filtered["ANEXO"] == selected_anexo]
+    date_range = st.session_state.get("date_range_cb", (min_date, max_date))
     if len(date_range) == 2:
         d_start, d_end = date_range
         filtered = filtered[
@@ -494,19 +338,17 @@ def main():
             & (filtered["FECHA"].dt.date <= d_end)
         ]
 
-    st.markdown(f"## 🏦 Caja y Bancos")
-    tab1, tab2, tab3 = st.tabs(["Dashboard", "Rankings", "Tabla Detallada"])
+    st.markdown("## 🏦 Caja y Bancos")
+    tab1, tab2 = st.tabs(["Dashboard", "Tabla Detallada"])
 
     with tab1:
         render_dashboard(filtered)
     with tab2:
-        render_rankings(filtered)
-    with tab3:
         render_table(filtered)
 
     st.caption(
         f"{len(filtered)} registros de {len(df)} totales  ·  "
-        f"Actualizado: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        f"Actualizado: {datetime.now().strftime('%Y%m%d %H:%M')}"
     )
 
 

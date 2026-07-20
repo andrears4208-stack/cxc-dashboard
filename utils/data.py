@@ -115,12 +115,10 @@ def process_caja_bancos(file_buffer):
 
     sign = df["MVTO"].map({"INGRESO": 1, "SALIDA": -1}).fillna(1)
 
-    df["SALDO_MN"] = df["CB_N_MTOMN"] * sign
-    df["SALDO_ME"] = df["CB_N_MTOME"] * sign
-
     es_mn = df["MONEDA"] == "MN"
-    df["SALDO_NETO"] = df["SALDO_MN"].where(es_mn, df["SALDO_ME"])
-    df["SALDO_NETO_SOLES"] = df["SALDO_MN"]
+    df["MONTO_REAL"] = df["CB_N_MTOMN"].where(es_mn, df["CB_N_MTOME"]) * sign
+    df["MONTO_MN"] = df["CB_N_MTOMN"] * sign
+    df["MONTO_ME"] = df["CB_N_MTOME"] * sign
 
     df["FECHA"] = pd.to_datetime(df["FECHA"], dayfirst=True)
     df["PERIODO_MES"] = df["FECHA"].dt.to_period("M").astype(str)
