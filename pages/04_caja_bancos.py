@@ -80,7 +80,7 @@ def render_dashboard(df):
         df_linea["PERIODO"] = yr + "-S" + wk.astype(str).str.zfill(2)
 
     flow = (
-        df_linea.groupby(["PERIODO", "MONEDA", "MVTO"])[["MONTO_MN", "MONTO_ME"]]
+        df_linea.groupby(["PERIODO", "MONEDA", "MVTO"])["MONTO_REAL"]
         .sum()
         .reset_index()
     )
@@ -88,10 +88,10 @@ def render_dashboard(df):
     flow_pivot = flow.pivot_table(
         index="PERIODO",
         columns=["MONEDA", "MVTO"],
-        values=["MONTO_MN", "MONTO_ME"],
+        values="MONTO_REAL",
         fill_value=0,
     )
-    flow_pivot.columns = [f"{c[1]}_{c[2]}" for c in flow_pivot.columns]
+    flow_pivot.columns = [f"{c[0]}_{c[1]}" for c in flow_pivot.columns]
     flow_pivot = flow_pivot.reset_index()
 
     for col in ["MN_INGRESO", "MN_SALIDA", "ME_INGRESO", "ME_SALIDA"]:
@@ -222,7 +222,7 @@ def render_table(df):
 
     st.dataframe(display_df, hide_index=True, use_container_width=True, height=500)
 
-    csv = df.to_csv(index=False).encoding("utf-8-sig")
+    csv = df.to_csv(index=False).encode("utf-8-sig")
     st.download_button(
         label="Descargar CSV",
         data=csv,
